@@ -22,20 +22,10 @@ pipeline {
                }
             }
         }
-        stage('Install Dependencies') {
-            steps {
-               sh """
-               npm install
-               ls -ltr
-               echo "Version is ${appVersion}"
-               """
-            }
-        }
-
         stage('build') {
             steps {
                sh """
-                zip -q -r backend.${appVersion}.zip * -x Jenkinsfile -x backend.${appVersion}.zip
+                zip -q -r frontend.${appVersion}.zip * -x Jenkinsfile -x frontend.${appVersion}.zip
                 ls -ltr              
                """
             }
@@ -44,7 +34,7 @@ pipeline {
         stage('Upload to nexus') {
             steps {
                sh """
-                curl -v -u admin:admin123 --upload-file backend.${appVersion}.zip http://localhost:8081/repository/expense-backend/backend.${appVersion}.zip
+                curl -v -u admin:admin123 --upload-file frontend.${appVersion}.zip http://localhost:8081/repository/expense-frontend/frontend.${appVersion}.zip
                """
             }
         }
@@ -57,25 +47,25 @@ pipeline {
                         nexusUrl: '${nexusUrl}',
                         groupId: 'com.expense',
                         version: "${appVersion}",
-                        repository: 'backend',
+                        repository: 'frontend',
                         credentialsId: 'nexus-auth',
                         artifacts: [
-                            [artifactId: 'backend', classifier: '', file: "backend-${appVersion}.zip", type: 'zip']
+                            [artifactId: 'frontend', classifier: '', file: "frontend-${appVersion}.zip", type: 'zip']
                         ]
                     )
                }
             }
         }
-        stage('Deploy') {
-            steps {
-                script {
-                    def params = [
-                            string(name: 'appVersion', value: "${appVersion}")
-                        ]   
-                        build job: 'deploy-backend', parameters: params, wait: false
-                    }
-            }
-        }
+        // stage('Deploy') {
+        //     steps {
+        //         script {
+        //             def params = [
+        //                     string(name: 'appVersion', value: "${appVersion}")
+        //                 ]   
+        //                 build job: 'deploy-frontend', parameters: params, wait: false
+        //             }
+        //     }
+        // }
     }
     post { 
         always { 
