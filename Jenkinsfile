@@ -73,9 +73,9 @@ pipeline {
             deleteDir()  #it will delete the workspace after the build run
         }
         success { 
-            echo 'deployment is success'
+            echo 'Deployment is success'
         }
         failure { 
-            echo 'deployment is failed please check the  console logs'
+            echo 'Deployment is failed please check the  console logs'
         }
     }
