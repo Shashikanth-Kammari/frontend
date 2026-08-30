@@ -69,7 +69,7 @@ pipeline {
     }
     post { 
         always { 
-            echo 'I will always say Hello again!'
+            echo 'It will always say Hello again!'
             deleteDir()  #it will delete the workspace after the build run
         }
         success { 
