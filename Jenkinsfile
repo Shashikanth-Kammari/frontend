@@ -7,75 +7,98 @@ pipeline {
         disableConcurrentBuilds()
         ansiColor('xterm')
     }
-    evironment {
-        appVersion = ''
-        nexusUrl = 'http://localhost:8081'
+    environment{
+        def appVersion = '' //variable declaration
+        nexusUrl = 'nexus.daws78s.online:8081'
+        region = "us-east-1"
+        account_id = "YourAWSAccountID"
     }
-    
     stages {
-        stage('read the version') {
-            steps {
-               script {
-                   def version = readJSON file: 'package.json'
-                   appVersion = version.version
-                   echo "Version is ${appVersion}"
-               }
+        stage('read the version'){
+            steps{
+                script{
+                    def packageJson = readJSON file: 'package.json'
+                    appVersion = packageJson.version
+                    echo "application version: $appVersion"
+                }
             }
         }
-        stage('build') {
-            steps {
-               sh """
-                zip -q -r frontend.${appVersion}.zip * -x Jenkinsfile -x frontend.${appVersion}.zip
-                ls -ltr              
-               """
+        
+        stage('Build'){
+            steps{
+                sh """
+                zip -q -r frontend-${appVersion}.zip * -x Jenkinsfile -x frontend-${appVersion}.zip
+                ls -ltr
+                """
             }
         }
 
-        stage('Upload to nexus') {
-            steps {
-               sh """
-                curl -v -u admin:admin123 --upload-file frontend.${appVersion}.zip http://localhost:8081/repository/expense-frontend/frontend.${appVersion}.zip
-               """
+        stage('Docker build'){
+            steps{
+                sh """
+                    aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account_id}.dkr.ecr.${region}.amazonaws.com
+
+                    docker build -t ${account_id}.dkr.ecr.${region}.amazonaws.com/expense-frontend:${appVersion} .
+
+                    docker push ${account_id}.dkr.ecr.${region}.amazonaws.com/expense-frontend:${appVersion}
+                """
             }
         }
-        stage('Nexus artifact uploader') {
-            steps {
-               script {
-                   nexusArtifactUploader(
-                        NexusVersion: 'nexus3',
+
+        stage('Deploy'){
+            steps{
+                sh """
+                    aws eks update-kubeconfig --region us-east-1 --name expense-dev
+                    cd helm
+                    sed -i 's/IMAGE_VERSION/${appVersion}/g' values.yaml
+                    helm upgrade frontend .
+                """
+            }
+        }
+
+
+        /* stage('Nexus Artifact Upload'){
+            steps{
+                script{
+                    nexusArtifactUploader(
+                        nexusVersion: 'nexus3',
                         protocol: 'http',
-                        nexusUrl: '${nexusUrl}',
+                        nexusUrl: "${nexusUrl}",
                         groupId: 'com.expense',
                         version: "${appVersion}",
-                        repository: 'frontend',
+                        repository: "frontend",
                         credentialsId: 'nexus-auth',
                         artifacts: [
-                            [artifactId: 'frontend', classifier: '', file: "frontend-${appVersion}.zip", type: 'zip']
+                            [artifactId: "frontend" ,
+                            classifier: '',
+                            file: "frontend-" + "${appVersion}" + '.zip',
+                            type: 'zip']
                         ]
                     )
-               }
+                }
             }
         }
-        stage('Deploy') {
-            steps {
-                script {
+        stage('Deploy'){
+            steps{
+                script{
                     def params = [
-                            string(name: 'appVersion', value: "${appVersion}")
-                        ]   
-                        build job: 'deploy-frontend', parameters: params, wait: false
-                    }
+                        string(name: 'appVersion', value: "${appVersion}")
+                    ]
+                    build job: 'frontend-deploy', parameters: params, wait: false
+                }
             }
-        }
+        } */
     }
     post { 
         always { 
-            echo 'It will always say Hello again!'
-            deleteDir()  #it will delete the workspace after the build run
+            echo 'I will always say Hello again!'
+            deleteDir()
         }
         success { 
-            echo 'Deployment is success'
+            echo 'I will run when pipeline is success'
         }
         failure { 
-            echo 'Deployment is failed please check the  console logs'
+            echo 'I will run when pipeline is failure'
         }
     }
+}
