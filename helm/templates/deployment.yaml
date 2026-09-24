@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: joindevops/frontend:{{ .Values.deployment.imageVersion }}
+        image: <yourAWSaccountId>.dkr.ecr.us-east-1.amazonaws.com/expense-frontend:{{ .Values.deployment.imageVersion }}
         resources:
           requests:
             cpu: "100m"
